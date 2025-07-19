@@ -1,0 +1,77 @@
+
+name: Deploy AutoAdForge
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:13
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: autoadforge
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis
+        ports:
+          - 6379:6379
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.10
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: 18
+
+    - name: Install frontend dependencies
+      working-directory: ./frontend
+      run: npm install
+
+    - name: Build frontend
+      working-directory: ./frontend
+      run: npm run build
+
+    - name: Install backend dependencies
+      working-directory: ./backend
+      run: pip install -r requirements.txt
+
+    - name: Run backend tests
+      working-directory: ./backend
+      run: pytest
+
+    - name: Deploy to Vercel
+      uses: amondnet/vercel-action@v25
+      with:
+        vercel-token: ${{ secrets.VERCEL_TOKEN }}
+        vercel-args: '--prod'
+        working-directory: ./frontend
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        scope: ${{ secrets.VERCEL_SCOPE }}
+        project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+
+    - name: Deploy to Render
+      run: echo "Render deploy is automatic on push via render.yaml"
