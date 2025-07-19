@@ -1,0 +1,96 @@
+
+// schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String    @id @default(cuid())
+  email          String    @unique
+  name           String?
+  passwordHash   String
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  campaigns      Campaign[]
+  scheduledPosts ScheduledPost[]
+  emailCampaigns EmailCampaign[]
+  role           Role      @default(USER)
+}
+
+model Campaign {
+  id           String     @id @default(cuid())
+  user         User       @relation(fields: [userId], references: [id])
+  userId       String
+  platform     Platform
+  adType       String
+  objective    String?
+  budget       Float?
+  startDate    DateTime?
+  endDate      DateTime?
+  creative     String?
+  status       CampaignStatus @default(DRAFT)
+  performance  Json?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model ScheduledPost {
+  id          String   @id @default(cuid())
+  user        User     @relation(fields: [userId], references: [id])
+  userId      String
+  platform    Platform
+  caption     String
+  mediaUrl    String?
+  scheduledAt DateTime
+  status      PostStatus @default(SCHEDULED)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model EmailCampaign {
+  id             String   @id @default(cuid())
+  user           User     @relation(fields: [userId], references: [id])
+  userId         String
+  subjectLine    String
+  previewText    String?
+  bodyHtml       String
+  templateUsed   String?
+  sentAt         DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+enum Platform {
+  GOOGLE
+  META
+  TIKTOK
+  YOUTUBE
+  MICROSOFT
+  INSTAGRAM
+  PINTEREST
+}
+
+enum CampaignStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+  FAILED
+}
+
+enum PostStatus {
+  SCHEDULED
+  POSTED
+  FAILED
+}
+
+enum Role {
+  ADMIN
+  USER
+}
